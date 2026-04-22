@@ -1,0 +1,68 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+ENV/
+.env
+.venv
+venv
+env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# uv
+uv.lock
+
+# Backend
+backend/.venv/
+backend/__pycache__/
+backend/*.pyc
+
+# Frontend
+frontend/node_modules/
+frontend/.vite/
+frontend/dist/
+frontend/.env
+
+# Data
+data/raw/
+data/processed/
+data/cleaned/
+data/labeled/
+data/chroma_db/
+
+# Models
+*.pkl
+*.joblib
+models/
+
+# Logs
+logs/
+*.log
+*.jsonl
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Docker
+*.pid
