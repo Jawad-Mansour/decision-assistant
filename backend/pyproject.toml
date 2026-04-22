@@ -25,6 +25,7 @@ dependencies = [
     "loguru>=0.7.0",
     "textblob>=0.18.0",
     "nltk>=3.9.0",
+    "kagglehub>=1.0.0",
 ]
 
 [build-system]

@@ -32,6 +32,8 @@ jiter==0.14.0
 joblib==1.5.3
 jsonschema==4.26.0
 jsonschema-specifications==2025.9.1
+kagglehub==1.0.0
+kagglesdk==0.1.19
 kubernetes==35.0.0
 loguru==0.7.3
 markdown-it-py==4.0.0
