@@ -15,6 +15,7 @@ from typing import Any, Sequence
 
 import chromadb
 
+from app.core.config import get_settings
 from app.services.embedder import Embedder
 
 logger = logging.getLogger(__name__)
@@ -49,7 +50,10 @@ class VectorStore:
             raise ValueError("collection_name must be a non-empty string.")
 
         project_root = Path(__file__).resolve().parents[3]
-        default_persist_dir = project_root / "data" / "chroma_db"
+        configured = get_settings().chroma_persist_directory
+        default_persist_dir = (
+            Path(configured) if configured else project_root / "data" / "chroma_db"
+        )
         self.persist_directory = Path(persist_directory) if persist_directory else default_persist_dir
         self.persist_directory.mkdir(parents=True, exist_ok=True)
 
