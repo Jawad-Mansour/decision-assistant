@@ -17,8 +17,16 @@ RUN apt-get update \
 COPY backend/pyproject.toml backend/README.md ./
 COPY backend/app ./app
 
-RUN pip install --upgrade pip setuptools wheel \
-    && pip install .
+RUN pip install --upgrade pip setuptools wheel
+
+# Pre-install CPU-only torch from PyTorch's own index BEFORE `pip install .` so
+# sentence-transformers / transformers find torch already satisfied and do NOT
+# pull the ~2 GB of nvidia-*-cu13 wheels from PyPI. Saves ~3.5 GB in the final
+# image and ~20 min at build time. Safe on Docker Desktop (no GPU passthrough)
+# and on Railway (CPU-only hosts).
+RUN pip install --index-url https://download.pytorch.org/whl/cpu torch
+
+RUN pip install .
 
 RUN python -c "import nltk; nltk.download('punkt_tab', quiet=True, download_dir='${NLTK_DATA}'); nltk.download('punkt', quiet=True, download_dir='${NLTK_DATA}')"
 
@@ -26,7 +34,7 @@ RUN apt-get purge -y --auto-remove build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 10001 appuser \
-    && mkdir -p /app/data/chroma_db /app/logs /models \
+    && mkdir -p /app/data/chroma_db /app/logs /models /opt/hf-cache /opt/nltk-data \
     && chown -R appuser:appuser /app /models /opt/hf-cache /opt/nltk-data
 
 USER appuser

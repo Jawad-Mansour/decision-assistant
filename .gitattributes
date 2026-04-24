@@ -1,0 +1,17 @@
+# Shell scripts and Dockerfiles must always use LF line endings so Linux
+# containers can exec them. Windows checkouts won't CRLF-munge these.
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.Dockerfile text eol=lf
+
+# Linux-only config files
+docker-entrypoint.sh text eol=lf
+nginx.conf          text eol=lf
+nginx.conf.template text eol=lf
+
+# Keep YAML/TOML/JSON/MD platform-agnostic LF
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.toml  text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
