@@ -35,9 +35,9 @@ services:
     volumes:
       - chroma_data:/app/data/chroma_db
       - app_logs:/app/logs
-      # Read-only ML artifacts. `/models` matches the path resolved by
-      # ml_predictor.py (Path(__file__).parents[3] / "models") inside the image.
-      - ./models:/models:ro
+      # Read-only ML artifacts. /app/models matches the path resolved by
+      # ml_predictor.py and paths.py inside the image.
+      - ./models:/app/models:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
       interval: 15s

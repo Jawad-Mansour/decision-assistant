@@ -8,6 +8,7 @@ from functools import lru_cache
 from typing import Any
 
 from app.services.vector_store import VectorStore
+from app.core.paths import get_chroma_path
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +23,8 @@ class RagRetriever:
         return RagRetriever()
 
     def __init__(self, vector_store: VectorStore | None = None) -> None:
-        # Force the correct path for Windows
-        from pathlib import Path
-        persist_dir = "C:/projects/decision-assistant/data/chroma_db"
+        # Use dynamic path resolution
+        persist_dir = str(get_chroma_path())
         
         # Create VectorStore with explicit path
         self.vector_store = VectorStore(

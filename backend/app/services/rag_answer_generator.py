@@ -8,6 +8,7 @@ from pathlib import Path
 from app.schemas.common import RetrievedContext
 from app.services.llm_client import LLMClient
 from app.services.rag_retriever import RagRetriever
+from app.core.paths import get_chroma_path
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +51,11 @@ class RAGAnswerGenerator:
         Returns:
             answer_text, contexts, latency_ms, cost_usd
         """
-        # Direct Chroma check with hardcoded Windows path
+        # Direct Chroma check using dynamic path resolution
         try:
             import chromadb
             
-            persist_dir = "C:/projects/decision-assistant/data/chroma_db"
+            persist_dir = str(get_chroma_path())
             
             if not Path(persist_dir).exists():
                 raise FileNotFoundError(f"Directory does not exist: {persist_dir}")
