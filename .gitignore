@@ -30,12 +30,13 @@ frontend/.vite/
 frontend/dist/
 frontend/.env
 
-# Data
+# Data (all contents are derived from notebooks; regenerable)
 data/raw/
 data/processed/
 data/cleaned/
 data/labeled/
 data/chroma_db/
+data/splits/
 
 # Models
 *.pkl
@@ -66,5 +67,3 @@ Thumbs.db
 
 # Docker
 *.pid
-data/raw/
-*.csv

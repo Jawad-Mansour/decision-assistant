@@ -11,6 +11,7 @@ import {
   Headset,
   Heart,
   History,
+  Info,
   Layers,
   RefreshCw,
   ShieldAlert,
@@ -67,6 +68,7 @@ type HistoryEntry = {
 
 const HISTORY_KEY = "triage.history.v1";
 const HISTORY_MAX = 50;
+const ONBOARDED_KEY = "zap.onboarded.v1";
 
 function loadHistory(): HistoryEntry[] {
   if (typeof window === "undefined") return [];
@@ -991,7 +993,7 @@ function AboutProjectModal({ open, onClose }: { open: boolean; onClose: () => vo
 
 /* ──────────────────────────── Composer & empties ──────────────────────────── */
 
-function EmptyState({ onPick }: { onPick: (q: string) => void }) {
+function EmptyState({ onPick, onAbout }: { onPick: (q: string) => void; onAbout: () => void }) {
   return (
     <div className="mx-auto flex min-h-[55vh] max-w-2xl flex-col items-center justify-center px-6 text-center animate-fade-in">
       <div className="relative">
@@ -1003,7 +1005,15 @@ function EmptyState({ onPick }: { onPick: (q: string) => void }) {
       </h2>
       <p className="mt-3 max-w-md text-sm leading-relaxed text-skin-muted">
         Paste a customer message. One call returns a RAG answer, a non-RAG answer, and two priority predictions — with
-        honest latency and cost.
+        honest latency and cost.{" "}
+        <button
+          type="button"
+          onClick={onAbout}
+          className="inline-flex items-center gap-1 font-semibold text-skin-primary underline-offset-2 hover:underline focus:outline-none"
+        >
+          <Info className="h-3.5 w-3.5" strokeWidth={2} />
+          How it works
+        </button>
       </p>
       <div className="mt-8 flex flex-wrap justify-center gap-2">
         {EXAMPLE_QUERIES.map((q) => (
@@ -1042,6 +1052,27 @@ export default function App() {
   useEffect(() => {
     saveHistory(history);
   }, [history]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (!window.localStorage.getItem(ONBOARDED_KEY)) {
+        const t = window.setTimeout(() => setAboutOpen(true), 400);
+        return () => window.clearTimeout(t);
+      }
+    } catch {
+      /* privacy mode — skip auto-open */
+    }
+  }, []);
+
+  const closeAbout = useCallback(() => {
+    setAboutOpen(false);
+    try {
+      window.localStorage.setItem(ONBOARDED_KEY, String(Date.now()));
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   const openHistoryEntry = useCallback((entry: HistoryEntry) => {
     setData(entry.data);
@@ -1159,7 +1190,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-skin-bg text-skin-text">
-      <AboutProjectModal open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <AboutProjectModal open={aboutOpen} onClose={closeAbout} />
       {mobileMenuOpen ? (
         <button
           type="button"
@@ -1286,23 +1317,29 @@ export default function App() {
           </div>
         </div>
 
-        <div className="flex items-center justify-between border-t border-skin-border p-3 text-[11px] text-skin-muted">
-          <div className="flex items-center gap-1.5">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-            </span>
-            UI ready · <span className="font-mono">v{packageJson.version}</span>
-          </div>
+        <div className="border-t border-skin-border p-3">
           <button
             type="button"
             onClick={() => setAboutOpen(true)}
             aria-label={`About ${BRAND_NAME}`}
-            title={`About ${BRAND_NAME}`}
-            className="group flex h-7 w-7 items-center justify-center rounded-full text-emerald-500 transition hover:scale-110 hover:bg-emerald-50 hover:text-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-300"
+            className="group flex w-full items-center gap-2 rounded-xl border border-skin-border bg-white px-3 py-2 text-left text-xs transition hover:border-skin-primary hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-indigo-200"
           >
-            <Heart className="h-4 w-4 fill-current animate-heart-pulse" strokeWidth={2} />
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-skin-primary transition group-hover:bg-white">
+              <Info className="h-4 w-4" strokeWidth={2} />
+            </span>
+            <span className="flex min-w-0 flex-col">
+              <span className="font-semibold text-skin-text">About {BRAND_NAME}</span>
+              <span className="truncate text-[10px] text-skin-muted">How the 4 branches work</span>
+            </span>
+            <Heart className="ml-auto h-3.5 w-3.5 shrink-0 fill-emerald-500 text-emerald-500 animate-heart-pulse" strokeWidth={2} />
           </button>
+          <div className="mt-2 flex items-center gap-1.5 px-1 text-[10px] text-skin-muted">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+            </span>
+            UI ready · <span className="font-mono">v{packageJson.version}</span>
+          </div>
         </div>
       </aside>
 
@@ -1333,7 +1370,9 @@ export default function App() {
         </header>
 
         <main className="scrollbar-thin flex-1 overflow-y-auto px-4 py-5 sm:px-6">
-          {showDashboardEmpty ? <EmptyState onPick={(q) => void sendText(q)} /> : null}
+          {showDashboardEmpty ? (
+            <EmptyState onPick={(q) => void sendText(q)} onAbout={() => setAboutOpen(true)} />
+          ) : null}
 
           {showDashboardResults ? (
             <div className="mx-auto max-w-6xl space-y-5" ref={resultsAnchorRef}>
