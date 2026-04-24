@@ -1,10 +1,6 @@
 """
 RAG retrieval service.
-
-Thin service wrapper around VectorStore to keep query retrieval logic
-in one place for future API routes.
 """
-
 from __future__ import annotations
 
 import logging
@@ -26,7 +22,15 @@ class RagRetriever:
         return RagRetriever()
 
     def __init__(self, vector_store: VectorStore | None = None) -> None:
-        self.vector_store = vector_store or VectorStore.get_instance()
+        # Force the correct path for Windows
+        from pathlib import Path
+        persist_dir = "C:/projects/decision-assistant/data/chroma_db"
+        
+        # Create VectorStore with explicit path
+        self.vector_store = VectorStore(
+            collection_name="support_conversations",
+            persist_directory=persist_dir
+        )
         logger.info(
             "Initialized RagRetriever collection='%s' vectors=%d",
             self.vector_store.collection_name,
@@ -42,4 +46,3 @@ class RagRetriever:
     ) -> list[dict[str, Any]]:
         """Retrieve top-k nearest context chunks."""
         return self.vector_store.query(query_text=query, top_k=top_k, where=where)
-
