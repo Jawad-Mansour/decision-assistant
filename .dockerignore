@@ -1,12 +1,55 @@
+# --- VCS / IDE ------------------------------------------------------------
 .git
+.gitignore
+.vscode
+.idea
+*.swp
+.DS_Store
+Thumbs.db
+
+# --- Secrets (keys live ONLY in .env, loaded at runtime via env_file) -----
+.env
+.env.*
+!.env.example
+backend/.env
+frontend/.env
+
+# --- Python ---------------------------------------------------------------
 **/__pycache__
 **/*.pyc
+**/*.pyo
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.egg-info
 **/.venv
+**/venv
+backend/.venv
+backend/tests
+
+# --- Node -----------------------------------------------------------------
 **/node_modules
 frontend/dist
-**/.pytest_cache
-**/*.egg-info
+frontend/.vite
+
+# --- Data & artifacts (volumes / release assets handle these at runtime) --
+data/raw
+data/processed
+data/cleaned
+data/labeled
+data/splits
 data/chroma_db
 data/chroma_db_test
+backend/data/chroma_db_test
+logs
+*.log
+*.jsonl
+
+# --- Notebooks & docs (not needed in the runtime image) -------------------
+notebooks
+docs
+*.ipynb
 *.pdf
-.DS_Store
+*.md
+!backend/README.md
+!frontend/README.md

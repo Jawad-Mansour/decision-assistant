@@ -1,0 +1,24 @@
+server {
+    listen ${PORT};
+    server_name _;
+    client_max_body_size 2m;
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+
+    # All API routes are proxied to the backend over the shared Docker network
+    # (service name in compose, *.railway.internal on Railway). The browser NEVER
+    # talks to the backend directly — it only sees this nginx on one port.
+    location ~ ^/(health|query|predict|answer)$ {
+        proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / {
+        root /usr/share/nginx/html;
+        try_files $uri $uri/ /index.html;
+    }
+}
