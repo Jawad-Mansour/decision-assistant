@@ -332,26 +332,67 @@ Railway runs each service in its own container sharing a private per-project
 network. The repo ships two `railway.json` files so Railway knows which
 Dockerfile to use for each service.
 
+### Critical: root directory must be the **repository root**
+
+Both `backend/Dockerfile` and `frontend/Dockerfile` use **`COPY backend/...`**
+and **`COPY frontend/...`** with **`buildContext: "."`** in `railway.json`.
+That means the Docker build context is always the **top of the repo**, not the
+`backend/` or `frontend/` folder alone.
+
+| Wrong (build fails: missing `backend/` or `frontend/` in context) | Correct |
+|---|---|
+| Root directory = `backend` | Root directory = **empty** or `/` (repo root) |
+| Root directory = `frontend` | Same for the frontend service |
+
+For each Railway service, set **Config file** (or point Railway at) the right
+JSON: `backend/railway.json` vs `frontend/railway.json`. Railway still builds
+from the **same** repo root; the JSON only selects which Dockerfile runs.
+
+### How traffic flows (Docker Compose vs Railway)
+
+| Hop | Docker Compose | Railway |
+|-----|----------------|---------|
+| Browser | `http://localhost:8080` (only published port) | Public URL on the **frontend** service only |
+| Static UI + API reverse proxy | nginx in `frontend` container | same |
+| Upstream for `/query`, `/health`, … | `http://backend:8000` on `app_network` | `http://<BACKEND_HOST>:8000` on Railway private DNS |
+| FastAPI + Chroma | `backend` container | backend container |
+
+The React app is built with **`VITE_API_BASE_URL` unset** so the browser uses
+**same-origin** paths (`/query`, `/health`, …). nginx matches those paths and
+`proxy_pass`es to the backend. The browser never needs the backend’s hostname.
+
+On Railway, set **`BACKEND_HOST`** to the **private hostname** of your backend
+service (Railway dashboard → backend service → **Networking** → copy the
+internal address, often shaped like `<service-name>.railway.internal`). It must
+match whatever you named the backend service (e.g. if you renamed it to
+`api`, use `api.railway.internal`). **`BACKEND_PORT=8000`** unless you changed
+the container port. **`PORT`** on the frontend is injected by Railway; nginx
+listens on that port after `envsubst` renders `nginx.conf.template`.
+
 1. **Create a new Railway project** → "Deploy from GitHub repo" → pick this repo.
 2. **Add the `backend` service**
-   - Root directory: `backend`
-   - Builder: Dockerfile (auto-detected via `backend/railway.json`)
-   - Healthcheck path: `/health` · timeout: 300s (first boot loads the
-     embedding model)
-   - **Volume**: mount 1 GB at `/app/data/chroma_db`
-   - **Variables**: `LLM_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`,
-     `CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db`, `LOG_DIR=/app/logs`,
-     `PORT=8000`.
+   - **Root directory:** repo root (leave blank / `/`).
+   - **Config / Dockerfile:** use `backend/railway.json` (builds
+     `backend/Dockerfile` with context `.`).
+   - Healthcheck path: `/health` · timeout: **300s** (first boot loads the
+     embedding model).
+   - **Volume:** mount ~1 GB at **`/app/data/chroma_db`** (matches
+     `CHROMA_PERSIST_DIRECTORY` in the example env).
+   - **Variables:** `LLM_PROVIDER`, `OPENAI_API_KEY`, `OPENAI_MODEL`,
+     `CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db`, `LOG_DIR=/app/logs`.
+     Do **not** set `PORT` manually — Railway injects it; the image CMD uses
+     `${PORT:-8000}`.
    - Do **not** generate a public domain — backend stays private.
 3. **Add the `frontend` service**
-   - Root directory: `frontend`
-   - Variables: `BACKEND_HOST=backend.railway.internal`,
-     `BACKEND_PORT=8000`, `PORT=80`.
-   - Generate a public domain here; this is the only URL users hit.
-4. **Seed the vector store** — SSH into the backend (or use Railway's one-off
-   run) and execute
-   `python scripts/ingest_conversations.py` once the data CSV is uploaded to
-   the volume.
+   - **Root directory:** same repo root (blank / `/`).
+   - **Config:** `frontend/railway.json`.
+   - **Variables:** `BACKEND_HOST=<paste backend private hostname>`,
+     `BACKEND_PORT=8000`. Leave **`PORT`** unset so Railway can inject the
+     listen port for nginx.
+   - Generate a **public domain** on this service only — that is the app URL.
+4. **Seed the vector store** — one-off run on the backend service:
+   `python scripts/ingest_conversations.py` (with your CSV available in the
+   volume or image) when you want RAG live.
 
 ### Known gap — "deploy even with the error"
 

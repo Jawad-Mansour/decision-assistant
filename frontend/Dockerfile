@@ -34,5 +34,6 @@ ENV PORT=80 \
 
 EXPOSE 80
 
+# Railway injects PORT at runtime (often not 80). $$ → $ so /bin/sh expands ${PORT:-80} at check time.
 HEALTHCHECK --interval=15s --timeout=5s --start-period=15s --retries=5 \
-    CMD wget -qO- http://127.0.0.1:${PORT}/ >/dev/null || exit 1
+    CMD wget -qO- http://127.0.0.1:$${PORT:-80}/ >/dev/null 2>&1 || exit 1
