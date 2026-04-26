@@ -1,17 +1,11 @@
 name: decision-assistant
 
-# Shared network so services resolve each other by name (backend, frontend).
-# The browser NEVER talks to the backend directly — it only hits the frontend's
-# nginx, which proxies /query, /health, /predict, /answer to `backend:8000` over
-# this private network. No localhost wiring inside the app.
 networks:
   app_network:
     driver: bridge
 
 volumes:
-  # Vector store (Chroma persistent) survives `docker compose down`.
   chroma_data:
-  # Rotating app.log survives `docker compose down`.
   app_logs:
 
 services:
@@ -24,26 +18,19 @@ services:
     env_file:
       - .env
     environment:
-      # Hardcoded here (not in .env) so the container paths always match the
-      # named-volume mount points below.
-      CHROMA_PERSIST_DIRECTORY: /app/data/chroma_db
       LOG_DIR: /app/logs
-    # `expose` publishes the port ONLY on the internal `app_network` — it is not
-    # reachable from the host. This enforces "no localhost" for the backend.
     expose:
       - "8000"
     volumes:
-      - chroma_data:/app/data/chroma_db
-      - app_logs:/app/logs
-      # Read-only ML artifacts. /app/models matches the path resolved by
-      # ml_predictor.py and paths.py inside the image.
-      - ./models:/app/models:ro
+      - /c/projects/decision-assistant/data/chroma_db:/app/data/chroma_db:delegated
+      - /c/projects/decision-assistant/logs:/app/logs:delegated
+      - /c/projects/decision-assistant/models:/models:ro
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
-      interval: 15s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 5
-      start_period: 120s
+      start_period: 180s
     networks:
       - app_network
 
@@ -52,7 +39,6 @@ services:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        # Empty -> browser uses same-origin relative URLs; nginx proxies them.
         VITE_API_BASE_URL: ""
     image: decision-assistant-frontend:latest
     restart: unless-stopped
@@ -60,17 +46,16 @@ services:
       PORT: "80"
       BACKEND_HOST: backend
       BACKEND_PORT: "8000"
-    # The ONLY port published to the host. Everything else stays on app_network.
     ports:
       - "${FRONTEND_HOST_PORT:-8080}:80"
     depends_on:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
-      interval: 15s
-      timeout: 5s
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:80/"]
+      interval: 30s
+      timeout: 10s
       retries: 5
-      start_period: 15s
+      start_period: 30s
     networks:
       - app_network
